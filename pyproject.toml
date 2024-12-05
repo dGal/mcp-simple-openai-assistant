@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcp-simple-openai-assistant"
+version = "0.1.0"
+authors = []
+description = "A simple MCP server for interacting with OpenAI assistants"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "mcp",
+    "openai>=1.0.0",
+]
+
+[project.scripts]
+mcp-simple-openai-assistant = "mcp_simple_openai_assistant:main"
