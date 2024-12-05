@@ -23,7 +23,7 @@ class OpenAIAssistant:
         self,
         name: str,
         instructions: str,
-        model: str = "gpt-4-turbo-preview"
+        model: str = "gpt-4o"
     ) -> Assistant:
         """Create a new OpenAI assistant.
         
@@ -48,6 +48,66 @@ class OpenAIAssistant:
             Thread object containing the thread details
         """
         return self.client.beta.threads.create()
+
+    async def list_assistants(self, limit: int = 20) -> list[Assistant]:
+        """List available OpenAI assistants.
+        
+        Args:
+            limit: Maximum number of assistants to return
+            
+        Returns:
+            List of Assistant objects containing details like ID, name, and instructions
+        """
+        response = self.client.beta.assistants.list(limit=limit)
+        return response.data
+
+    async def retrieve_assistant(self, assistant_id: str) -> Assistant:
+        """Get details about a specific assistant.
+        
+        Args:
+            assistant_id: ID of the assistant to retrieve
+            
+        Returns:
+            Assistant object with full configuration details
+            
+        Raises:
+            ValueError: If assistant not found
+        """
+        return self.client.beta.assistants.retrieve(assistant_id)
+
+    async def update_assistant(
+        self,
+        assistant_id: str,
+        name: Optional[str] = None,
+        instructions: Optional[str] = None,
+        model: Optional[str] = None
+    ) -> Assistant:
+        """Update an existing assistant's configuration.
+        
+        Args:
+            assistant_id: ID of the assistant to modify
+            name: Optional new name
+            instructions: Optional new instructions
+            model: Optional new model
+            
+        Returns:
+            Updated Assistant object
+            
+        Raises:
+            ValueError: If assistant not found
+        """
+        update_params = {}
+        if name is not None:
+            update_params["name"] = name
+        if instructions is not None:
+            update_params["instructions"] = instructions
+        if model is not None:
+            update_params["model"] = model
+            
+        return self.client.beta.assistants.update(
+            assistant_id=assistant_id,
+            **update_params
+        )
 
     async def send_message(
         self,
