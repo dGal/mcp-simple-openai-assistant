@@ -6,9 +6,9 @@ A simple MCP server for interacting with OpenAI assistants. This server allows o
 
 ## Features
 
-- Create new OpenAI assistants
+- Create new OpenAI assistants and manipulate existing ones
 - Start conversation threads
-- Send messages and receive responses
+- Send messages and receive responses - talk to assistants
 
 ## Installation
 
@@ -40,7 +40,7 @@ The server requires an OpenAI API key to be set in the environment. For Claude D
 
 ```json
 "mcpServers": {
-  "fetch": {
+  "openai-assistant": {
     "command": "C:\\Users\\YOUR_USERNAME\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
       "args": ["-m", "mcp-simple-openai-assistant"],
       "env": {
