@@ -5,7 +5,9 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mcp-simple-openai-assistant"
 version = "0.2.3"
-authors = []
+authors = [
+    {name = "Andy Brandt", email = "andy@codesprinters.com"}
+]
 description = "A simple MCP server for interacting with OpenAI assistants"
 readme = "README.md"
 requires-python = ">=3.10"
