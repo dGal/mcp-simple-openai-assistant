@@ -10,6 +10,8 @@ A simple MCP server for interacting with OpenAI assistants. This server allows o
 - Start conversation threads
 - Send messages and receive responses - talk to assistants
 
+Because OpenAI assistants might take quite long to respond and then the processing is cut short with the client (Claude desktop) timeout the MCP server code has no control over we are implementing a two-stage approach. In the first call Claude sends a message to the assistant to start the processing, in the second call - possibly several minutes later - Claude can retrieve the response. This is a kind of workaround until MCP protocol and clients would implement some keep-alive mechanism for longer processing.
+
 ## Installation
 
 ```bash

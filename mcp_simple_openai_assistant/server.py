@@ -7,14 +7,15 @@ Available tools:
 - retrieve_assistant: Get details about an existing assistant
 - update_assistant: Modify an existing assistant's configuration
 - new_thread: Create a new conversation thread
-- send_message: Send a message to an assistant and get their response
+- send_message: Start processing a message (returns immediately)
+- check_response: Check if assistant's response is ready
 
 Usage examples:
 1. Create an assistant for data analysis:
    create_assistant(
        name="Data Analyst",
        instructions="You help analyze data and create visualizations",
-       model="gpt-3.5-turbo-0125"
+       model="gpt-4o"
    )
 
 2. Start a conversation:
@@ -24,11 +25,13 @@ Usage examples:
        assistant_id=assistant_id,
        message="Can you help me analyze this dataset?"
    )
+   # Later, check response:
+   check_response(thread_id=thread_id)
 
 Notes:
 - Assistant IDs and Thread IDs should be stored for reuse
-- Model names should be current OpenAI model versions
-- Messages are processed asynchronously with appropriate timeouts
+- Messages may take some time to process - check_response will indicate status
+- When a response is not ready, wait a bit and try check_response again
 """
 
 import sys
@@ -37,9 +40,10 @@ from typing import Any
 
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
-from mcp.types import Tool, TextContent
+from mcp.types import TextContent
 
 from .assistant import OpenAIAssistant
+from .tools import get_tool_definitions
 
 # Initialize the MCP server
 app = Server("mcp-openai-assistant")
@@ -48,126 +52,13 @@ app = Server("mcp-openai-assistant")
 assistant: OpenAIAssistant | None = None
 
 @app.list_tools()
-async def list_tools() -> list[Tool]:
-    """ List available tools for interacting with OpenAI assistants """
-    return [
-        Tool(
-            name="create_assistant",
-            description="Create a new OpenAI assistant to help you with your tasks, you can provide instructions that this assistant will follow when working with your prompts",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "name": {
-                        "type": "string",
-                        "description": "Name for the assistant, use a descriptive name to be able to re-use it in the future"
-                    },
-                    "instructions": {
-                        "type": "string",
-                        "description": "Instructions for the assistant"
-                    },
-                    "model": {
-                        "type": "string",
-                        "description": "Model to use (default: gpt-4o)",
-                        "default": "gpt-4o"
-                    }
-                },
-                "required": ["name", "instructions"]
-            }
-        ),
-        Tool(
-            name="new_thread",
-            description="Creates a new conversation thread. Threads have large capacity and the context window is moving so that it always covers last X tokens.",
-            inputSchema={
-                "type": "object",
-                "properties": {},
-                "additionalProperties": False
-            }
-        ),
-        Tool(
-            name="send_message",
-            description="Send a message to the assistant and wait for response",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "thread_id": {
-                        "type": "string",
-                        "description": "Thread ID to use"
-                    },
-                    "assistant_id": {
-                        "type": "string",
-                        "description": "Assistant ID to use"
-                    },
-                    "message": {
-                        "type": "string",
-                        "description": "Message (prompt) to send"
-                    }
-                },
-                "required": ["thread_id", "assistant_id", "message"]
-            }
-        ),
-        Tool(
-    name="list_assistants",
-    description="""List all available OpenAI assistants.
-        Returns a list of assistants with their IDs, names, and configurations.
-        Use this to find existing assistants you can work with.
-        The results can be used with other tools like send_message or update_assistant.""",
-    inputSchema={
-        "type": "object",
-        "properties": {
-            "limit": {
-                "type": "number",
-                "description": "Optional: Maximum number of assistants to return (default: 20)",
-                "default": 20
-            }
-        },
-        "additionalProperties": False
-        }
-        ),
-        Tool(
-            name="retrieve_assistant",
-            description="Get details of a specific assistant",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "assistant_id": {
-                        "type": "string",
-                        "description": "ID of the assistant to retrieve"
-                    }
-                },
-                "required": ["assistant_id"]
-            }
-        ),
-        Tool(
-            name="update_assistant",
-            description="Modify an existing assistant",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "assistant_id": {
-                        "type": "string",
-                        "description": "ID of the assistant to modify"
-                    },
-                    "name": {
-                        "type": "string",
-                        "description": "Optional: New name for the assistant"
-                    },
-                    "instructions": {
-                        "type": "string",
-                        "description": "Optional: New instructions for the assistant"
-                    },
-                    "model": {
-                        "type": "string",
-                        "description": "Optional: New model to use (e.g. gpt-3.5-turbo-0125)"
-                    }
-                },
-                "required": ["assistant_id"]
-            }
-        )
-    ]
+async def list_tools():
+    """List available tools for interacting with OpenAI assistants."""
+    return get_tool_definitions()
 
 @app.call_tool()
 async def call_tool(name: str, arguments: Any) -> list[TextContent]:
-    """ Handle tool calls. """
+    """Handle tool calls."""
     global assistant
     if not assistant:
         return [TextContent(
@@ -195,15 +86,31 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
             )]
 
         elif name == "send_message":
-            response = await assistant.send_message(
+            await assistant.send_message(
                 thread_id=arguments["thread_id"],
                 assistant_id=arguments["assistant_id"],
                 message=arguments["message"]
             )
             return [TextContent(
                 type="text",
-                text=response
+                text=f"Message sent and processing started. Use check_response with thread_id {arguments['thread_id']} to get the response when ready."
             )]
+
+        elif name == "check_response":
+            status, response = await assistant.check_response(arguments["thread_id"])
+            if status == "completed" and response:
+                return [TextContent(type="text", text=response)]
+            elif status == "in_progress":
+                return [TextContent(
+                    type="text",
+                    text="Response not ready yet. Please try again in a few seconds."
+                )]
+            else:
+                return [TextContent(
+                    type="text",
+                    text=f"Error: Run {status}. Please try sending your message again."
+                )]
+
         elif name == "list_assistants":
             limit = arguments.get("limit", 20)
             assistants = await assistant.list_assistants(limit=limit)

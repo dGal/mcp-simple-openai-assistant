@@ -1,12 +1,12 @@
-"""OpenAI Assistant implementation."""
+"""OpenAI Assistant implementation with quick return and separate status checking."""
 
 import os
-import asyncio
-from typing import Optional
+from typing import Optional, Literal
 import openai
 from openai.types.beta import Assistant, Thread
 from openai.types.beta.threads import Run
 
+RunStatus = Literal["completed", "in_progress", "failed", "cancelled", "expired"]
 
 class OpenAIAssistant:
     """Handles interactions with OpenAI's Assistant API."""
@@ -30,7 +30,7 @@ class OpenAIAssistant:
         Args:
             name: Name for the assistant
             instructions: Instructions defining assistant's behavior
-            model: Model to use (default: gpt-4-turbo-preview)
+            model: Model to use (default: gpt-4o)
             
         Returns:
             Assistant object containing the assistant's details
@@ -113,23 +113,20 @@ class OpenAIAssistant:
         self,
         thread_id: str,
         assistant_id: str,
-        message: str,
-        timeout: Optional[int] = 120
+        message: str
     ) -> str:
-        """Send a message to an assistant and wait for response.
+        """Send a message to an assistant and start processing.
+        
+        This method returns immediately after the message is sent and run is created.
+        Use check_response() to get the actual response once it's ready.
         
         Args:
             thread_id: ID of the thread to use
             assistant_id: ID of the assistant to use
             message: Message content to send
-            timeout: Maximum seconds to wait for response (default: 120)
             
         Returns:
-            Assistant's response text
-            
-        Raises:
-            TimeoutError: If response not received within timeout
-            ValueError: If run fails or is cancelled
+            Status message confirming the message was sent
         """
         # Send the message
         self.client.beta.threads.messages.create(
@@ -138,60 +135,46 @@ class OpenAIAssistant:
             role="user"
         )
 
-        # Create and monitor the run
-        run = self.client.beta.threads.runs.create(
+        # Create the run and return immediately
+        self.client.beta.threads.runs.create(
             thread_id=thread_id,
             assistant_id=assistant_id
         )
+        
+        return "Message sent and processing started. Use check_response with this thread_id to get the response when ready."
 
-        # Poll for completion
-        timeout_time = asyncio.get_event_loop().time() + timeout if timeout else None
-        while True:
-            # Check timeout
-            if timeout_time and asyncio.get_event_loop().time() > timeout_time:
-                await self._cancel_run(thread_id, run.id)
-                raise TimeoutError("Assistant response timed out")
-
-            run_status = self.client.beta.threads.runs.retrieve(
-                thread_id=thread_id,
-                run_id=run.id
-            )
-
-            if run_status.status == "completed":
-                # Get the latest message (the assistant's response)
-                messages = self.client.beta.threads.messages.list(
-                    thread_id=thread_id,
-                    order="desc",
-                    limit=1
-                )
-                if not messages.data:
-                    raise ValueError("No response message found")
-                
-                # Extract text content from the message
-                message = messages.data[0]
-                if not message.content or not message.content[0].text:
-                    raise ValueError("Response message has no text content")
-                
-                return message.content[0].text.value
-            
-            elif run_status.status in ["failed", "cancelled", "expired"]:
-                raise ValueError(f"Run failed with status: {run_status.status}")
-            
-            # Wait before checking again
-            await asyncio.sleep(1)
-
-    async def _cancel_run(self, thread_id: str, run_id: str) -> None:
-        """Cancel a running assistant run.
+    async def check_response(self, thread_id: str) -> tuple[RunStatus, Optional[str]]:
+        """Check if response is ready in the thread.
         
         Args:
-            thread_id: ID of the thread
-            run_id: ID of the run to cancel
+            thread_id: Thread ID to check
+            
+        Returns:
+            Tuple of (status, response_text)
+            - status is one of: "completed", "in_progress", "failed", "cancelled", "expired"
+            - response_text is the assistant's response if status is "completed", None otherwise
         """
-        try:
-            self.client.beta.threads.runs.cancel(
+        # Get the latest run in the thread
+        runs = self.client.beta.threads.runs.list(thread_id=thread_id, limit=1)
+        if not runs.data:
+            raise ValueError(f"No runs found in thread {thread_id}")
+        
+        latest_run = runs.data[0]
+        
+        # If run is completed, get the response
+        if latest_run.status == "completed":
+            messages = self.client.beta.threads.messages.list(
                 thread_id=thread_id,
-                run_id=run_id
+                order="desc",
+                limit=1
             )
-        except Exception as e:
-            # Log but don't raise - this is cleanup code
-            print(f"Error cancelling run: {e}")
+            if not messages.data:
+                raise ValueError("No response message found")
+            
+            message = messages.data[0]
+            if not message.content or not message.content[0].text:
+                raise ValueError("Response message has no text content")
+                
+            return "completed", message.content[0].text.value
+        else:
+            return latest_run.status, None
