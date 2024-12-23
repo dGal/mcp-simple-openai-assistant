@@ -29,7 +29,7 @@ The server requires an OpenAI API key to be set in the environment. For Claude D
   "mcpServers": {
     "openai-assistant": {
       "command": "python",
-      "args": ["-m", "mcp-simple-openai-assistant"],
+      "args": ["-m", "mcp_simple_openai_assistant"],
       "env": {
         "OPENAI_API_KEY": "your-api-key-here"
       }
@@ -44,13 +44,14 @@ The server requires an OpenAI API key to be set in the environment. For Claude D
 "mcpServers": {
   "openai-assistant": {
     "command": "C:\\Users\\YOUR_USERNAME\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
-      "args": ["-m", "mcp-simple-openai-assistant"],
+      "args": ["-m", "mcp_simple_openai_assistant"],
       "env": {
         "OPENAI_API_KEY": "your-api-key-here"
   }
 }
 
 ```
+*MS Windows installation is slightly more complex, because you need to check the actual path to your Python executable. Path provided above is usually correct, but might differ in your setup. Sometimes just `python.exe` without any path will do the trick. Check with `cmd` what works for you (using `where python` might help).*
 
 ## Usage
 
