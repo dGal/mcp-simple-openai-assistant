@@ -7,17 +7,28 @@ def get_tool_definitions() -> list[Tool]:
     return [
         Tool(
             name="create_assistant",
-            description="Create a new OpenAI assistant to help you with your tasks, you can provide instructions that this assistant will follow when working with your prompts",
+            description="""Create a new OpenAI assistant to help you with your tasks, 
+                            you can provide instructions that this assistant will follow when working with your prompts
+                            and you can provide a model to use for the assistant.
+
+                            NOTE: It is recomended to check existing assistants with list_assistants before creating a new one.
+                            This will help you avoid creating assistants with the same name or instructions.
+            """,
             inputSchema={
                 "type": "object",
                 "properties": {
                     "name": {
                         "type": "string",
-                        "description": "Name for the assistant, use a descriptive name to be able to re-use it in the future"
+                        "description": """Name for the assistant, use a descriptive name to be able to re-use it in the future.
+                            Remember, that your other instance will not have the context you have, make sure the assistant name
+                            is descriptive enough.
+                            """
                     },
                     "instructions": {
                         "type": "string",
-                        "description": "Instructions for the assistant that will shape its behavior and responses"
+                        "description": """Instructions for the assistant that will shape its behavior and responses.
+                            These can be quite long if you feel this will help the assistant to perform better.
+                            """
                     },
                     "model": {
                         "type": "string",
