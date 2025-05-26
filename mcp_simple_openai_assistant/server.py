@@ -152,7 +152,7 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
             text=f"Error: {str(e)}"
         )]
 
-async def main():
+async def serve():
     """Main entry point for the server."""
     global assistant
 
@@ -170,6 +170,3 @@ async def main():
             write_stream,
             app.create_initialization_options()
         )
-
-if __name__ == "__main__":
-    asyncio.run(main())
