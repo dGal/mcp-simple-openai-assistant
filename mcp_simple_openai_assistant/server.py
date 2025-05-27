@@ -7,9 +7,7 @@ Available tools:
 - retrieve_assistant: Get details about an existing assistant
 - update_assistant: Modify an existing assistant's configuration
 - new_thread: Create a new conversation thread
-- send_message: Start processing a message (returns immediately)
-- check_response: Check if assistant's response is ready
-- send_message_get_response: Start processing a message wait for response and return it
+- send_message_get_response: Start processing a message and wait for response and return it
 
 Usage examples:
 1. Create an assistant for data analysis:
@@ -21,18 +19,15 @@ Usage examples:
 
 2. Start a conversation:
    thread_id = new_thread()
-   send_message(
+   send_message_get_response(
        thread_id=thread_id,
        assistant_id=assistant_id,
        message="Can you help me analyze this dataset?"
    )
-   # Later, check response:
-   check_response(thread_id=thread_id)
 
 Notes:
 - Assistant IDs and Thread IDs should be stored for reuse
-- Messages may take some time to process - check_response will indicate status
-- When a response is not ready, wait a bit and try check_response again
+- Messages may take some time to process
 """
 
 import sys
@@ -86,17 +81,6 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
                 text=f"Created new thread with ID: {result.id}"
             )]
 
-        elif name == "send_message":
-            await assistant.send_message(
-                thread_id=arguments["thread_id"],
-                assistant_id=arguments["assistant_id"],
-                message=arguments["message"]
-            )
-            return [TextContent(
-                type="text",
-                text=f"Message sent and processing started. Use check_response with thread_id {arguments['thread_id']} to get the response when ready."
-            )]
-
         elif name == "send_message_get_response":
             status, response = await assistant.send_message_get_response(
                 thread_id=arguments["thread_id"],
@@ -105,21 +89,6 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
             )
             if status == "completed" and response:
                 return [TextContent(type="text", text=response)]
-            else:
-                return [TextContent(
-                    type="text",
-                    text=f"Error: Run {status}. Please try sending your message again."
-                )]
-
-        elif name == "check_response":
-            status, response = await assistant.check_response(arguments["thread_id"])
-            if status == "completed" and response:
-                return [TextContent(type="text", text=response)]
-            elif status == "in_progress":
-                return [TextContent(
-                    type="text",
-                    text="Response not ready yet. Please try again in a few seconds."
-                )]
             else:
                 return [TextContent(
                     type="text",

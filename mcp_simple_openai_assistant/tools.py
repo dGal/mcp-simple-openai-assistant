@@ -49,29 +49,6 @@ def get_tool_definitions() -> list[Tool]:
             }
         ),
         Tool(
-            name="send_message",
-            description="""Send a message to assistant and start processing.
-                         The response will not be immediately available - use check_response with the same thread_id to get it when ready.""",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "thread_id": {
-                        "type": "string",
-                        "description": "Thread ID to use"
-                    },
-                    "assistant_id": {
-                        "type": "string",
-                        "description": "Assistant ID to use"
-                    },
-                    "message": {
-                        "type": "string",
-                        "description": "Message to send"
-                    }
-                },
-                "required": ["thread_id", "assistant_id", "message"]
-            }
-        ),
-        Tool(
             name="send_message_get_response",
             description="""Send a message to assistant and get the the response immediately.""",
             inputSchema={
@@ -94,26 +71,11 @@ def get_tool_definitions() -> list[Tool]:
             }
         ),
         Tool(
-            name="check_response",
-            description="""Check if assistant's response is ready in the thread.
-                         Returns either 'in_progress' status or the actual response if ready.""",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "thread_id": {
-                        "type": "string",
-                        "description": "Thread ID to check"
-                    }
-                },
-                "required": ["thread_id"]
-            }
-        ),
-        Tool(
             name="list_assistants",
             description="""List all available OpenAI assistants.
                 Returns a list of assistants with their IDs, names, and configurations.
                 Use this to find existing assistants you can work with.
-                The results can be used with other tools like send_message or update_assistant.""",
+                The results can be used with other tools like send_message_get_response or update_assistant.""",
             inputSchema={
                 "type": "object",
                 "properties": {

@@ -110,39 +110,6 @@ class OpenAIAssistant:
             **update_params
         )
 
-    async def send_message(
-        self,
-        thread_id: str,
-        assistant_id: str,
-        message: str
-    ) -> str:
-        """Send a message to an assistant and start processing.
-
-        This method returns immediately after the message is sent and run is created.
-        Use check_response() to get the actual response once it's ready.
-
-        Args:
-            thread_id: ID of the thread to use
-            assistant_id: ID of the assistant to use
-            message: Message content to send
-
-        Returns:
-            Status message confirming the message was sent
-        """
-        # Send the message
-        self.client.beta.threads.messages.create(
-            thread_id=thread_id,
-            content=message,
-            role="user"
-        )
-
-        # Create the run and return immediately
-        self.client.beta.threads.runs.create(
-            thread_id=thread_id,
-            assistant_id=assistant_id
-        )
-
-        return "Message sent and processing started. Use check_response with this thread_id to get the response when ready."
 
     async def send_message_get_response(
         self,
@@ -199,38 +166,3 @@ class OpenAIAssistant:
         else:
             return latest_run.status, None
 
-    async def check_response(self, thread_id: str) -> tuple[RunStatus, Optional[str]]:
-        """Check if response is ready in the thread.
-
-        Args:
-            thread_id: Thread ID to check
-
-        Returns:
-            Tuple of (status, response_text)
-            - status is one of: "completed", "in_progress", "failed", "cancelled", "expired"
-            - response_text is the assistant's response if status is "completed", None otherwise
-        """
-        # Get the latest run in the thread
-        runs = self.client.beta.threads.runs.list(thread_id=thread_id, limit=1)
-        if not runs.data:
-            raise ValueError(f"No runs found in thread {thread_id}")
-
-        latest_run = runs.data[0]
-
-        # If run is completed, get the response
-        if latest_run.status == "completed":
-            messages = self.client.beta.threads.messages.list(
-                thread_id=thread_id,
-                order="desc",
-                limit=1
-            )
-            if not messages.data:
-                raise ValueError("No response message found")
-
-            message = messages.data[0]
-            if not message.content or not message.content[0].text:
-                raise ValueError("Response message has no text content")
-
-            return "completed", message.content[0].text.value
-        else:
-            return latest_run.status, None
