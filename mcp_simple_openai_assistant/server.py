@@ -96,7 +96,11 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
                 )]
 
         elif name == "list_assistants":
-            limit = arguments.get("limit", 20)
+            try:
+                limit_int = int(arguments.get("limit", 20))
+            except ValueError:
+                limit_int = 20
+            limit = limit_int
             assistants = await assistant.list_assistants(limit=limit)
             # Format the response to be readable
             assistant_list = [f"ID: {a.id}\nName: {a.name}\nModel: {a.model}\n" for a in assistants]
