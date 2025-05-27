@@ -9,6 +9,7 @@ Available tools:
 - new_thread: Create a new conversation thread
 - send_message: Start processing a message (returns immediately)
 - check_response: Check if assistant's response is ready
+- send_message_get_response: Start processing a message wait for response and return it
 
 Usage examples:
 1. Create an assistant for data analysis:
@@ -95,6 +96,20 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
                 type="text",
                 text=f"Message sent and processing started. Use check_response with thread_id {arguments['thread_id']} to get the response when ready."
             )]
+
+        elif name == "send_message_get_response":
+            status, response = await assistant.send_message_get_response(
+                thread_id=arguments["thread_id"],
+                assistant_id=arguments["assistant_id"],
+                message=arguments["message"]
+            )
+            if status == "completed" and response:
+                return [TextContent(type="text", text=response)]
+            else:
+                return [TextContent(
+                    type="text",
+                    text=f"Error: Run {status}. Please try sending your message again."
+                )]
 
         elif name == "check_response":
             status, response = await assistant.check_response(arguments["thread_id"])

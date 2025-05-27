@@ -72,6 +72,28 @@ def get_tool_definitions() -> list[Tool]:
             }
         ),
         Tool(
+            name="send_message_get_response",
+            description="""Send a message to assistant and get the the response immediately.""",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "thread_id": {
+                        "type": "string",
+                        "description": "Thread ID to use"
+                    },
+                    "assistant_id": {
+                        "type": "string",
+                        "description": "Assistant ID to use"
+                    },
+                    "message": {
+                        "type": "string",
+                        "description": "Message to send"
+                    }
+                },
+                "required": ["thread_id", "assistant_id", "message"]
+            }
+        ),
+        Tool(
             name="check_response",
             description="""Check if assistant's response is ready in the thread.
                          Returns either 'in_progress' status or the actual response if ready.""",
