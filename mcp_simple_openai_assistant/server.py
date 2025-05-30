@@ -82,17 +82,26 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
             )]
 
         elif name == "send_message_get_response":
+            thread_id = arguments.get("thread_id")
+            # create new thread if no thread id is provided
+            # and return the id as part of the response
+            if not thread_id:
+                thread = await assistant.new_thread()
+                thread_id = thread.id
             status, response = await assistant.send_message_get_response(
-                thread_id=arguments["thread_id"],
+                thread_id=thread_id,
                 assistant_id=arguments["assistant_id"],
                 message=arguments["message"]
             )
+            thread_msg = ""
+            if not arguments.get("thread_id") and thread_id:
+                thread_msg = f"Created new thread with ID: {thread_id}\n\n"
             if status == "completed" and response:
-                return [TextContent(type="text", text=response)]
+                return [TextContent(type="text", text=thread_msg + response)]
             else:
                 return [TextContent(
                     type="text",
-                    text=f"Error: Run {status}. Please try sending your message again."
+                    text=thread_msg + f"Error: Run {status}. Please try sending your message again."
                 )]
 
         elif name == "list_assistants":

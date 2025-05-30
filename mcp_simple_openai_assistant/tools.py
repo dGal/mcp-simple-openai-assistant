@@ -50,7 +50,9 @@ def get_tool_definitions() -> list[Tool]:
         ),
         Tool(
             name="send_message_get_response",
-            description="""Send a message to assistant and get the the response immediately.""",
+            description="""Send a message to assistant and get the the response immediately.
+                If the thread ID isnt specified, new thread ID is created and returned as part of the response.
+            """,
             inputSchema={
                 "type": "object",
                 "properties": {
